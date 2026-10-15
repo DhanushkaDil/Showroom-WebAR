@@ -7,58 +7,38 @@
   <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
   <style>
     #overlay { position: fixed; inset: 0; pointer-events: none; }
-    #controls { position: absolute; bottom: 20px; left: 0; right: 0;
-                display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
-                pointer-events: auto; }
-    #controls button { padding: 12px 14px; font-size: 16px; border: none;
-                       border-radius: 10px; background: rgba(255,255,255,.85); }
-    #hint { position: absolute; top: 12px; left: 0; right: 0; text-align: center;
-            font: 14px sans-serif; color: #fff; text-shadow: 0 0 4px #000; }
+    #hint { position: absolute; top: 16px; left: 16px; right: 16px; text-align: center;
+            font: 16px sans-serif; color: #fff; text-shadow: 0 0 4px #000; }
   </style>
 </head>
 <body>
   <a-scene
     renderer="alpha: true"
     xr-mode-ui="XRMode: ar"
-    webxr="optionalFeatures: dom-overlay, local-floor; overlayElement: #overlay">
+    webxr="optionalFeatures: hit-test, dom-overlay, local-floor; overlayElement: #overlay">
 
-    <!-- The showroom. Change the position/scale values to place it. -->
-    <a-entity id="room" position="0 0 -3" scale="1 1 1">
-      <a-entity gltf-model="FashionShowroom_v1.glb"></a-entity>
+    <!-- Showroom: hidden until you tap to place it -->
+    <a-entity id="room" visible="false">
+      <a-entity gltf-model="FashionShowroom_v1.glb" scale="1 1 1"></a-entity>
     </a-entity>
 
-    <a-light type="ambient" intensity="1"></a-light>
+    <!-- Floor detector: shows a ring on the floor; tap to place the room there -->
+    <a-entity ar-hit-test="target: #room; type: footprint"></a-entity>
 
-    <!-- Camera = your phone in AR. On desktop you can preview with WASD + mouse. -->
-    <a-entity camera position="0 1.6 0" look-controls wasd-controls></a-entity>
+    <a-light type="ambient" intensity="1"></a-light>
+    <a-entity camera></a-entity>
   </a-scene>
 
   <div id="overlay">
-    <div id="hint">Tap the AR button, then use the buttons to place the showroom</div>
-    <div id="controls">
-      <button data-a="move" data-x="-0.25" data-z="0">⬅</button>
-      <button data-a="move" data-x="0.25" data-z="0">➡</button>
-      <button data-a="move" data-x="0" data-z="0.25">Closer</button>
-      <button data-a="move" data-x="0" data-z="-0.25">Farther</button>
-      <button data-a="rotate" data-v="15">↻</button>
-      <button data-a="rotate" data-v="-15">↺</button>
-      <button data-a="scale" data-v="1.1">＋ Size</button>
-      <button data-a="scale" data-v="0.9">－ Size</button>
-      <button data-a="height" data-v="0.1">▲</button>
-      <button data-a="height" data-v="-0.1">▼</button>
-    </div>
+    <div id="hint">Point your phone at the floor, then tap where the showroom entrance should be</div>
   </div>
 
   <script>
-    const room = document.getElementById('room').object3D;
-    document.querySelectorAll('#controls button').forEach(b => {
-      b.addEventListener('click', () => {
-        const a = b.dataset.a;
-        if (a === 'move')   { room.position.x += +b.dataset.x; room.position.z += +b.dataset.z; }
-        if (a === 'rotate') { room.rotation.y += THREE.MathUtils.degToRad(+b.dataset.v); }
-        if (a === 'scale')  { room.scale.multiplyScalar(+b.dataset.v); }
-        if (a === 'height') { room.position.y += +b.dataset.v; }
-      });
+    const hint = document.getElementById('hint');
+    const scene = document.querySelector('a-scene');
+    scene.addEventListener('ar-hit-test-select', () => {
+      document.getElementById('room').setAttribute('visible', true);
+      hint.style.display = 'none';
     });
   </script>
 </body>
