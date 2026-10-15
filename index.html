@@ -3,63 +3,63 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>My AR Showroom</title>
+  <title>AR Fashion Showroom</title>
   <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
   <style>
-    #pad { position: fixed; bottom: 24px; left: 24px; z-index: 10;
-           display: grid; grid-template-columns: 64px 64px 64px; gap: 8px; }
-    #pad button { width: 64px; height: 64px; font-size: 24px; border-radius: 50%;
-                  border: none; background: rgba(255,255,255,.7); touch-action: none; }
-    #up { grid-column: 2; } #left { grid-column: 1; grid-row: 2; }
-    #down { grid-column: 2; grid-row: 2; } #right { grid-column: 3; grid-row: 2; }
+    #overlay { position: fixed; inset: 0; pointer-events: none; }
+    #controls { position: absolute; bottom: 20px; left: 0; right: 0;
+                display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+                pointer-events: auto; }
+    #controls button { padding: 12px 14px; font-size: 16px; border: none;
+                       border-radius: 10px; background: rgba(255,255,255,.85); }
+    #hint { position: absolute; top: 12px; left: 0; right: 0; text-align: center;
+            font: 14px sans-serif; color: #fff; text-shadow: 0 0 4px #000; }
   </style>
 </head>
 <body>
-  <a-scene vr-mode-ui="enabled: false">
-    <!-- Your showroom -->
-    <a-entity gltf-model="FashionShowroom_v1.glb" position="0 0 0" scale="1 1 1"></a-entity>
+  <a-scene
+    renderer="alpha: true"
+    xr-mode-ui="XRMode: ar"
+    webxr="optionalFeatures: dom-overlay, local-floor; overlayElement: #overlay">
 
-    <!-- The viewer: starting position is the "position" below (x y z) -->
-    <a-entity id="player" camera position="0 1.6 3"
-              look-controls="touchEnabled: true"
-              wasd-controls="acceleration: 20"></a-entity>
+    <!-- The showroom. Change the position/scale values to place it. -->
+    <a-entity id="room" position="0 0 -3" scale="1 1 1">
+      <a-entity gltf-model="FashionShowroom_v1.glb"></a-entity>
+    </a-entity>
 
-    <a-sky color="#dfe6ee"></a-sky>
+    <a-light type="ambient" intensity="1"></a-light>
+
+    <!-- Camera = your phone in AR. On desktop you can preview with WASD + mouse. -->
+    <a-entity camera position="0 1.6 0" look-controls wasd-controls></a-entity>
   </a-scene>
 
-  <!-- On-screen buttons for phones -->
-  <div id="pad">
-    <button id="up">▲</button>
-    <button id="left">◀</button>
-    <button id="down">▼</button>
-    <button id="right">▶</button>
+  <div id="overlay">
+    <div id="hint">Tap the AR button, then use the buttons to place the showroom</div>
+    <div id="controls">
+      <button data-a="move" data-x="-0.25" data-z="0">⬅</button>
+      <button data-a="move" data-x="0.25" data-z="0">➡</button>
+      <button data-a="move" data-x="0" data-z="0.25">Closer</button>
+      <button data-a="move" data-x="0" data-z="-0.25">Farther</button>
+      <button data-a="rotate" data-v="15">↻</button>
+      <button data-a="rotate" data-v="-15">↺</button>
+      <button data-a="scale" data-v="1.1">＋ Size</button>
+      <button data-a="scale" data-v="0.9">－ Size</button>
+      <button data-a="height" data-v="0.1">▲</button>
+      <button data-a="height" data-v="-0.1">▼</button>
+    </div>
   </div>
 
   <script>
-    const SPEED = 2; // metres per second
-    const held = { up: false, down: false, left: false, right: false };
-    for (const id of Object.keys(held)) {
-      const b = document.getElementById(id);
-      const on = e => { e.preventDefault(); held[id] = true; };
-      const off = e => { e.preventDefault(); held[id] = false; };
-      b.addEventListener('touchstart', on);  b.addEventListener('touchend', off);
-      b.addEventListener('touchcancel', off);
-      b.addEventListener('mousedown', on);   b.addEventListener('mouseup', off);
-      b.addEventListener('mouseleave', off);
-    }
-    AFRAME.registerComponent('pad-move', {
-      tick(time, dt) {
-        const f = (held.up ? 1 : 0) - (held.down ? 1 : 0);
-        const s = (held.right ? 1 : 0) - (held.left ? 1 : 0);
-        if (!f && !s) return;
-        const yaw = this.el.object3D.rotation.y;
-        const d = SPEED * dt / 1000;
-        const p = this.el.object3D.position;
-        p.x += (-Math.sin(yaw) * f + Math.cos(yaw) * s) * d;
-        p.z += (-Math.cos(yaw) * f - Math.sin(yaw) * s) * d;
-      }
+    const room = document.getElementById('room').object3D;
+    document.querySelectorAll('#controls button').forEach(b => {
+      b.addEventListener('click', () => {
+        const a = b.dataset.a;
+        if (a === 'move')   { room.position.x += +b.dataset.x; room.position.z += +b.dataset.z; }
+        if (a === 'rotate') { room.rotation.y += THREE.MathUtils.degToRad(+b.dataset.v); }
+        if (a === 'scale')  { room.scale.multiplyScalar(+b.dataset.v); }
+        if (a === 'height') { room.position.y += +b.dataset.v; }
+      });
     });
-    document.getElementById('player').setAttribute('pad-move', '');
   </script>
 </body>
 </html>
