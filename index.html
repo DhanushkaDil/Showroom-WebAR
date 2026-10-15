@@ -1,26 +1,65 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>My AR Showroom</title>
-  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
+  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+  <style>
+    #pad { position: fixed; bottom: 24px; left: 24px; z-index: 10;
+           display: grid; grid-template-columns: 64px 64px 64px; gap: 8px; }
+    #pad button { width: 64px; height: 64px; font-size: 24px; border-radius: 50%;
+                  border: none; background: rgba(255,255,255,.7); touch-action: none; }
+    #up { grid-column: 2; } #left { grid-column: 1; grid-row: 2; }
+    #down { grid-column: 2; grid-row: 2; } #right { grid-column: 3; grid-row: 2; }
+  </style>
 </head>
 <body>
-  <h1>AR Fashion Showroom</h1>
+  <a-scene vr-mode-ui="enabled: false">
+    <!-- Your showroom -->
+    <a-entity gltf-model="FashionShowroom_v1.glb" position="0 0 0" scale="1 1 1"></a-entity>
 
-  <model-viewer src="FashionShowroom_v1.glb" alt="Show Room"
-    ar ar-modes="webxr scene-viewer quick-look"
-    camera-controls auto-rotate shadow-intensity="1"
-    style="width:100%;height:500px;"
-    ar-placement="floor"
-    ar-scale="fixed"
-    orientation="0deg 0deg 0deg"
-    scale="10 10 10"
-    camera-orbit="0deg 75deg 8m"
-    camera-target="0m 1m 0m"
-    field-of-view="45deg">>
-  </model-viewer>
+    <!-- The viewer: starting position is the "position" below (x y z) -->
+    <a-entity id="player" camera position="0 1.6 3"
+              look-controls="touchEnabled: true"
+              wasd-controls="acceleration: 20"></a-entity>
 
-  <!-- copy the block above for each item -->
+    <a-sky color="#dfe6ee"></a-sky>
+  </a-scene>
+
+  <!-- On-screen buttons for phones -->
+  <div id="pad">
+    <button id="up">▲</button>
+    <button id="left">◀</button>
+    <button id="down">▼</button>
+    <button id="right">▶</button>
+  </div>
+
+  <script>
+    const SPEED = 2; // metres per second
+    const held = { up: false, down: false, left: false, right: false };
+    for (const id of Object.keys(held)) {
+      const b = document.getElementById(id);
+      const on = e => { e.preventDefault(); held[id] = true; };
+      const off = e => { e.preventDefault(); held[id] = false; };
+      b.addEventListener('touchstart', on);  b.addEventListener('touchend', off);
+      b.addEventListener('touchcancel', off);
+      b.addEventListener('mousedown', on);   b.addEventListener('mouseup', off);
+      b.addEventListener('mouseleave', off);
+    }
+    AFRAME.registerComponent('pad-move', {
+      tick(time, dt) {
+        const f = (held.up ? 1 : 0) - (held.down ? 1 : 0);
+        const s = (held.right ? 1 : 0) - (held.left ? 1 : 0);
+        if (!f && !s) return;
+        const yaw = this.el.object3D.rotation.y;
+        const d = SPEED * dt / 1000;
+        const p = this.el.object3D.position;
+        p.x += (-Math.sin(yaw) * f + Math.cos(yaw) * s) * d;
+        p.z += (-Math.cos(yaw) * f - Math.sin(yaw) * s) * d;
+      }
+    });
+    document.getElementById('player').setAttribute('pad-move', '');
+  </script>
 </body>
 </html>
